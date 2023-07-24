@@ -3729,6 +3729,17 @@
     rxjs "^7.8.1"
     typeid-js "^0.3.0"
 
+"@sanity/telemetry@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@sanity/telemetry/-/telemetry-0.6.0.tgz#0a364a5c5ae493c1290863e2a24ac0033c9de94a"
+  integrity sha512-MbqFtFqtlOoggKv4N3u4o8nNMycaH5ouft+TIPmuQZmopqPAvc5HUfK5bPGZo4ZjYnob59GF5R1o2w1lWhfNow==
+  dependencies:
+    lodash "^4.17.21"
+    react "^18.2.0"
+    react-dom "^18.2.0"
+    rxjs "^7.8.1"
+    typeid-js "^0.3.0"
+
 "@sanity/tsdoc@1.0.0-alpha.38":
   version "1.0.0-alpha.38"
   resolved "https://registry.yarnpkg.com/@sanity/tsdoc/-/tsdoc-1.0.0-alpha.38.tgz#572462d71bc167adeaae986f017dc8238df53f47"
