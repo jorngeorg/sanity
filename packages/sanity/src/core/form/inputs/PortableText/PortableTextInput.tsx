@@ -54,6 +54,7 @@ export interface PortableTextMemberItem {
 export function PortableTextInput(props: PortableTextInputProps) {
   const {
     elementProps,
+    fullscreen: fullscreenProp,
     hotkeys,
     markers = EMPTY_ARRAY,
     onChange,
@@ -85,7 +86,7 @@ export function PortableTextInput(props: PortableTextInputProps) {
   const editorRef = useRef<PortableTextEditor | null>(null)
   const [ignoreValidationError, setIgnoreValidationError] = useState(false)
   const [invalidValue, setInvalidValue] = useState<InvalidValue | null>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(fullscreenProp || false)
   const [isActive, setIsActive] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
   const [hasFocusWithin, setHasFocusWithin] = useState(false)
@@ -101,11 +102,17 @@ export function PortableTextInput(props: PortableTextInputProps) {
 
   const innerElementRef = useRef<HTMLDivElement | null>(null)
 
+  useEffect(() => {
+    if (fullscreenProp !== undefined) {
+      setIsFullscreen(fullscreenProp)
+    }
+  }, [fullscreenProp])
+
   const handleToggleFullscreen = useCallback(() => {
     if (editorRef.current) {
-      setIsFullscreen((v) => !v)
+      setIsFullscreen((v) => (fullscreenProp === undefined ? !v : fullscreenProp))
     }
-  }, [])
+  }, [fullscreenProp])
 
   // Reset invalidValue if new value is coming in from props
   useEffect(() => {
