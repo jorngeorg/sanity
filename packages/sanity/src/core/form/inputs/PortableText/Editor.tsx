@@ -33,6 +33,7 @@ import {ListItem} from './text/ListItem'
 const noOutlineStyle = {outline: 'none'} as const
 
 interface EditorProps {
+  hideToolbar?: boolean
   hotkeys: HotkeyOptions
   initialSelection?: EditorSelection
   isActive: boolean
@@ -68,6 +69,7 @@ const renderListItem: RenderListItemFunction = (props) => {
  */
 export function Editor(props: EditorProps) {
   const {
+    hideToolbar,
     hotkeys,
     initialSelection,
     isActive,
@@ -162,7 +164,7 @@ export function Editor(props: EditorProps) {
 
   return (
     <Root $fullscreen={isFullscreen} data-testid="pt-editor">
-      {isActive && (
+      {isActive && hideToolbar !== true && (
         <ToolbarCard data-testid="pt-editor__toolbar-card" shadow={1}>
           <Toolbar
             hotkeys={hotkeys}
