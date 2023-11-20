@@ -5,6 +5,8 @@ import {
   PortableTextEditor,
   InvalidValue,
   Patch,
+  RenderEditableFunction,
+  PortableTextEditableProps,
 } from '@sanity/portable-text-editor'
 import React, {
   useEffect,
@@ -38,6 +40,10 @@ export interface PortableTextMemberItem {
   elementRef?: React.MutableRefObject<PortableTextEditorElement | null>
   input?: ReactNode
 }
+/** @public */
+export interface RenderPortableTextInputEditableProps extends PortableTextEditableProps {
+  renderDefault: RenderEditableFunction
+}
 
 /**
  * Input component for editing block content
@@ -70,6 +76,7 @@ export function PortableTextInput(props: PortableTextInputProps) {
     rangeDecorations,
     renderBlockActions,
     renderCustomMarkers,
+    renderEditable,
     schemaType,
     value,
   } = props
@@ -256,6 +263,7 @@ export function PortableTextInput(props: PortableTextInputProps) {
                 onPaste={onPaste}
                 onToggleFullscreen={handleToggleFullscreen}
                 rangeDecorations={rangeDecorations}
+                renderEditable={renderEditable}
                 renderBlockActions={renderBlockActions}
                 renderCustomMarkers={renderCustomMarkers}
               />

@@ -4,6 +4,7 @@ import {
   type HotkeyOptions,
   type OnCopyFn,
   type OnPasteFn,
+  type PortableTextEditableProps,
   type RangeDecoration,
   type RenderAnnotationFunction,
   type RenderBlockFunction,
@@ -16,6 +17,7 @@ import type {Path} from '@sanity/types'
 import {BoundaryElementProvider, useBoundaryElement, useGlobalKeyDown, useLayer} from '@sanity/ui'
 import React, {useCallback, useMemo, useRef} from 'react'
 import {useTranslation} from '../../../i18n'
+import {type PortableTextInputProps} from '../../types/inputProps'
 import {Toolbar} from './toolbar'
 import {Decorator} from './text'
 import {
@@ -49,6 +51,7 @@ interface EditorProps {
   renderAnnotation: RenderAnnotationFunction
   renderBlock: RenderBlockFunction
   renderChild: RenderChildFunction
+  renderEditable?: PortableTextInputProps['renderEditable']
   scrollElement: HTMLElement | null
   setPortalElement?: (portalElement: HTMLDivElement | null) => void
   setScrollElement: (scrollElement: HTMLElement | null) => void
@@ -86,6 +89,7 @@ export function Editor(props: EditorProps) {
     renderAnnotation,
     renderBlock,
     renderChild,
+    renderEditable,
     scrollElement,
     setPortalElement,
     setScrollElement,
@@ -122,43 +126,48 @@ export function Editor(props: EditorProps) {
 
   const scrollSelectionIntoView = useScrollSelectionIntoView(scrollElement)
 
-  const editable = useMemo(
-    () => (
-      <PortableTextEditable
-        aria-describedby={ariaDescribedBy}
-        hotkeys={hotkeys}
-        onCopy={onCopy}
-        onPaste={onPaste}
-        ref={editableRef}
-        rangeDecorations={rangeDecorations}
-        renderAnnotation={renderAnnotation}
-        renderBlock={renderBlock}
-        renderChild={renderChild}
-        renderDecorator={renderDecorator}
-        renderListItem={renderListItem}
-        renderPlaceholder={renderPlaceholder}
-        renderStyle={renderStyle}
-        scrollSelectionIntoView={scrollSelectionIntoView}
-        selection={initialSelection}
-        spellCheck={spellcheck}
-        style={noOutlineStyle}
-      />
-    ),
-    [
-      ariaDescribedBy,
+  const editable = useMemo(() => {
+    const editableProps: PortableTextEditableProps = {
+      'aria-describedby': ariaDescribedBy,
       hotkeys,
-      initialSelection,
       onCopy,
       onPaste,
       rangeDecorations,
+      ref: editableRef,
       renderAnnotation,
       renderBlock,
       renderChild,
+      renderDecorator,
+      renderListItem,
       renderPlaceholder,
+      renderStyle,
       scrollSelectionIntoView,
-      spellcheck,
-    ],
-  )
+      selection: initialSelection,
+      spellCheck: spellcheck,
+      style: noOutlineStyle,
+    }
+    const defaultRender = (defProps: PortableTextEditableProps) => (
+      <PortableTextEditable {...editableProps} {...defProps} />
+    )
+    if (renderEditable) {
+      return renderEditable({...editableProps, renderDefault: defaultRender})
+    }
+    return defaultRender(editableProps)
+  }, [
+    ariaDescribedBy,
+    hotkeys,
+    initialSelection,
+    onCopy,
+    onPaste,
+    rangeDecorations,
+    renderAnnotation,
+    renderBlock,
+    renderChild,
+    renderEditable,
+    renderPlaceholder,
+    scrollSelectionIntoView,
+    spellcheck,
+  ])
 
   const handleToolBarOnMemberOpen = useCallback(
     (relativePath: Path) => {
