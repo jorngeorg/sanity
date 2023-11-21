@@ -147,8 +147,8 @@ export function Editor(props: EditorProps) {
       spellCheck: spellcheck,
       style: noOutlineStyle,
     }
-    const defaultRender = (defProps: PortableTextEditableProps) => (
-      <PortableTextEditable {...omit(editableProps, ['renderDefault'])} {...defProps} />
+    const defaultRender = (defaultRenderProps: PortableTextEditableProps) => (
+      <PortableTextEditable {...editableProps} {...omit(defaultRenderProps, ['renderDefault'])} />
     )
     if (renderEditable) {
       return renderEditable({...editableProps, renderDefault: defaultRender})
