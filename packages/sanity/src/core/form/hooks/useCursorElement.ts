@@ -1,4 +1,4 @@
-import {useState, useMemo, useEffect, useCallback} from 'react'
+import {useState, useMemo, useEffect, useCallback, useRef} from 'react'
 
 const EVENT_LISTENER_OPTIONS: AddEventListenerOptions = {passive: true}
 
@@ -17,6 +17,7 @@ interface CursorElementHookOptions {
 export function useCursorElement(opts: CursorElementHookOptions): HTMLElement | null {
   const {disabled, rootElement} = opts
   const [cursorRect, setCursorRect] = useState<DOMRect | null>(null)
+  const rangeRef = useRef<Range | null>(null)
 
   const cursorElement = useMemo(() => {
     if (!cursorRect) {
@@ -51,6 +52,7 @@ export function useCursorElement(opts: CursorElementHookOptions): HTMLElement | 
     }
 
     const range = sel.getRangeAt(0)
+    rangeRef.current = range
     const isWithinRoot = rootElement?.contains(range.commonAncestorContainer)
 
     if (!isWithinRoot) {
@@ -70,6 +72,24 @@ export function useCursorElement(opts: CursorElementHookOptions): HTMLElement | 
       document.removeEventListener('selectionchange', handleSelectionChange)
     }
   }, [handleSelectionChange])
+
+  const handleScroll = useCallback(() => {
+    if (rangeRef.current) {
+      setCursorRect(rangeRef.current.getBoundingClientRect())
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof disabled === 'boolean' && disabled) {
+      return undefined
+    }
+
+    rootElement?.addEventListener('scroll', handleScroll, EVENT_LISTENER_OPTIONS)
+
+    return () => {
+      rootElement?.removeEventListener('scroll', handleScroll)
+    }
+  }, [disabled, rootElement, handleScroll])
 
   return cursorElement
 }
