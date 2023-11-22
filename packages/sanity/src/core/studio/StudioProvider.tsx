@@ -26,6 +26,7 @@ import {
 } from './screens'
 import {WorkspaceLoader} from './workspaceLoader'
 import {WorkspacesProvider} from './workspaces'
+import {StudioTelemetryProvider} from './StudioTelemetryProvider'
 
 Refractor.registerLanguage(bash)
 Refractor.registerLanguage(javascript)
@@ -61,35 +62,37 @@ export function StudioProvider({
   )
 
   return (
-    <ColorSchemeProvider onSchemeChange={onSchemeChange} scheme={scheme}>
-      <ToastProvider paddingY={7} zOffset={Z_OFFSET.toast}>
-        <ErrorLogger />
-        <StudioErrorBoundary>
-          <WorkspacesProvider config={config} basePath={basePath}>
-            <ActiveWorkspaceMatcher
-              unstable_history={history}
-              NotFoundComponent={NotFoundScreen}
-              LoadingComponent={LoadingScreen}
-            >
-              <StudioThemeProvider>
-                <UserColorManagerProvider>
-                  {noAuthBoundary ? (
-                    _children
-                  ) : (
-                    <AuthBoundary
-                      LoadingComponent={LoadingScreen}
-                      AuthenticateComponent={AuthenticateScreen}
-                      NotAuthenticatedComponent={NotAuthenticatedScreen}
-                    >
-                      {_children}
-                    </AuthBoundary>
-                  )}
-                </UserColorManagerProvider>
-              </StudioThemeProvider>
-            </ActiveWorkspaceMatcher>
-          </WorkspacesProvider>
-        </StudioErrorBoundary>
-      </ToastProvider>
-    </ColorSchemeProvider>
+    <StudioTelemetryProvider config={config}>
+      <ColorSchemeProvider onSchemeChange={onSchemeChange} scheme={scheme}>
+        <ToastProvider paddingY={7} zOffset={Z_OFFSET.toast}>
+          <ErrorLogger />
+          <StudioErrorBoundary>
+            <WorkspacesProvider config={config} basePath={basePath}>
+              <ActiveWorkspaceMatcher
+                unstable_history={history}
+                NotFoundComponent={NotFoundScreen}
+                LoadingComponent={LoadingScreen}
+              >
+                <StudioThemeProvider>
+                  <UserColorManagerProvider>
+                    {noAuthBoundary ? (
+                      _children
+                    ) : (
+                      <AuthBoundary
+                        LoadingComponent={LoadingScreen}
+                        AuthenticateComponent={AuthenticateScreen}
+                        NotAuthenticatedComponent={NotAuthenticatedScreen}
+                      >
+                        {_children}
+                      </AuthBoundary>
+                    )}
+                  </UserColorManagerProvider>
+                </StudioThemeProvider>
+              </ActiveWorkspaceMatcher>
+            </WorkspacesProvider>
+          </StudioErrorBoundary>
+        </ToastProvider>
+      </ColorSchemeProvider>
+    </StudioTelemetryProvider>
   )
 }
