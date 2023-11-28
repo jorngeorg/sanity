@@ -8,7 +8,7 @@ import {
   useSlate,
 } from 'slate-react'
 import {flatten, noop} from 'lodash'
-import {PortableTextBlock} from '@sanity/types'
+import {PortableTextBlock, SchemaType} from '@sanity/types'
 import {
   EditorChange,
   EditorSelection,
@@ -60,6 +60,7 @@ export type PortableTextEditableProps = Omit<
   'onPaste' | 'onCopy' | 'onBeforeInput'
 > & {
   hotkeys?: HotkeyOptions
+  isDraggableType?: (schemaType: SchemaType) => boolean
   onBeforeInput?: (event: InputEvent) => void
   onPaste?: OnPasteFn
   onCopy?: OnCopyFn
@@ -87,6 +88,7 @@ export const PortableTextEditable = forwardRef(function PortableTextEditable(
 ) {
   const {
     hotkeys,
+    isDraggableType,
     onBlur,
     onFocus,
     onBeforeInput,
@@ -144,6 +146,7 @@ export const PortableTextEditable = forwardRef(function PortableTextEditable(
     (eProps: RenderElementProps) => (
       <Element
         {...eProps}
+        isDraggableType={isDraggableType}
         readOnly={readOnly}
         renderBlock={renderBlock}
         renderChild={renderChild}
@@ -153,7 +156,16 @@ export const PortableTextEditable = forwardRef(function PortableTextEditable(
         spellCheck={spellCheck}
       />
     ),
-    [schemaTypes, spellCheck, readOnly, renderBlock, renderChild, renderListItem, renderStyle],
+    [
+      schemaTypes,
+      spellCheck,
+      readOnly,
+      renderBlock,
+      renderChild,
+      renderListItem,
+      renderStyle,
+      isDraggableType,
+    ],
   )
 
   const renderLeaf = useCallback(
