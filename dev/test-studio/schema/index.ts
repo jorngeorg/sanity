@@ -86,6 +86,7 @@ import fieldGroupsWithValidation from './debug/fieldGroupsWithValidation'
 import fieldGroupsWithFieldsetsAndValidation from './debug/fieldGroupsWithFieldsetsAndValidation'
 import {virtualizationInObject} from './debug/virtualizationInObject'
 import {virtualizationDebug} from './debug/virtualizationDebug'
+import {referenceWithKeyContainingPeriods} from './debug/referenceWithKeyContainingPeriods'
 
 // Test documents with official plugin inputs
 import code from './plugins/code'
@@ -226,6 +227,7 @@ export const schemaTypes = [
   crossDatasetReference,
   crossDatasetSubtype,
   circularCrossDatasetReferenceTest,
+  referenceWithKeyContainingPeriods,
   reservedFieldNames,
   review,
   richTextObject,
