@@ -88,5 +88,7 @@ export function createTelemetryStore(options: {env: {[key: string]: string | und
     sendEvents,
   })
   process.once('beforeExit', () => store.flush())
+  process.once('unhandledRejection', () => store.flush())
+  process.once('uncaughtException', () => store.flush())
   return store
 }

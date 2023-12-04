@@ -1,8 +1,9 @@
 import {type Framework, frameworks} from '@vercel/frameworks'
-import {LocalFileSystemDetector, detectFrameworkRecord} from '@vercel/fs-detectors'
+import {detectFrameworkRecord, LocalFileSystemDetector} from '@vercel/fs-detectors'
 import initProject from '../../actions/init-project/initProject'
 import initPlugin from '../../actions/init-plugin/initPlugin'
 import {CliCommandDefinition} from '../../types'
+import {CliInitTrace} from '../__telemetry__/init.telemetry'
 
 const helpText = `
 Options
@@ -77,22 +78,28 @@ export const initCommand: CliCommandDefinition<InitFlags> = {
   description: 'Initialize a new Sanity Studio project',
   helpText,
   action: async (args, context) => {
+    const trace = context.telemetry.trace(CliInitTrace)
     const {output, chalk, prompt} = context
     const [type] = args.argsWithoutOptions
     const unattended = args.extOptions.y || args.extOptions.yes
 
     const warn = (msg: string) => output.warn(chalk.yellow.bgBlack(msg))
+    trace.log({step: 'start'})
 
     // `sanity init plugin`
     if (type === 'plugin') {
+      trace.log({step: 'unsupportedInitPlugin'})
       return context.sanityMajorVersion === 2
-        ? initPlugin(args, context)
-        : Promise.reject(new Error(`'sanity init plugin' is not available in modern studios`))
+        ? // don't bother with telemetry here, as it's not supported in v3
+          initPlugin(args, context)
+        : trace.await(
+            Promise.reject(new Error(`'sanity init plugin' is not available in modern studios`)),
+          )
     }
 
     // `sanity init whatever`
     if (type) {
-      return Promise.reject(new Error(`Unknown init type "${type}"`))
+      return trace.await(Promise.reject(new Error(`Unknown init type "${type}"`)))
     }
 
     // `npm create sanity` (regular v3 init)
@@ -102,15 +109,21 @@ export const initCommand: CliCommandDefinition<InitFlags> = {
       frameworkList: frameworks as readonly Framework[],
     })
 
+    trace.log({step: 'frameworkDetected', framework: detectedFramework?.slug ?? undefined})
     if (
       args.argv.includes('--from-create') ||
       args.argv.includes('--env') ||
       args.argv.includes('--bare') ||
       detectedFramework?.slug === 'nextjs'
     ) {
-      return initProject(args, context)
+      return initProject(args, {
+        ...context,
+        detectedFramework,
+        telemetry: trace.newContext('initProject'),
+      })
     }
 
+    trace.log({step: 'v2Warning'})
     // `sanity init` (v2 style)
     warn('╭────────────────────────────────────────────────────────────╮')
     warn('│                                                            │')
@@ -124,22 +137,30 @@ export const initCommand: CliCommandDefinition<InitFlags> = {
     warn('│                                                            │')
     warn('╰────────────────────────────────────────────────────────────╯')
     warn('') // Newline to separate from other output
-
     const continueV3Init = unattended
       ? true
       : await prompt.single({
           message: 'Continue creating a Sanity Studio v3 project?',
           type: 'confirm',
         })
+    trace.log({step: 'continueV3'})
 
     // Fall back
     if (!continueV3Init) {
+      trace.log({step: 'cancelV3Init'})
       // Indicate that the operation did not succeed as expected
       // eslint-disable-next-line no-process-exit
       process.exit(1)
     }
 
-    const returnVal = await initProject(args, context)
+    const returnVal = await initProject(args, {
+      ...context,
+      detectedFramework,
+      telemetry: trace.newContext('initProject'),
+    }).catch((err) => {
+      trace.error(err)
+      return Promise.reject(err)
+    })
 
     warn('╭────────────────────────────────────────────────────────────╮')
     warn('│                                                            │')

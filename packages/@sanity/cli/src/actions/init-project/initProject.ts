@@ -9,10 +9,10 @@ import resolveFrom from 'resolve-from'
 import which from 'which'
 
 import type {DatasetAclMode} from '@sanity/client'
-import {type Framework, frameworks} from '@vercel/frameworks'
+import {type Framework} from '@vercel/frameworks'
 import execa, {CommonOptions} from 'execa'
 import {evaluate, patch} from 'golden-fleece'
-import {LocalFileSystemDetector, detectFrameworkRecord} from '@vercel/fs-detectors'
+import {TelemetryLogger} from '@sanity/telemetry'
 import type {InitFlags} from '../../commands/init/initCommand'
 import {debug} from '../../debug'
 import {
@@ -20,7 +20,7 @@ import {
   installDeclaredPackages,
   installNewPackages,
 } from '../../packageManager'
-import {PackageManager, getPartialEnvWithNpmPath} from '../../packageManager/packageManagerChoice'
+import {getPartialEnvWithNpmPath, PackageManager} from '../../packageManager/packageManagerChoice'
 import {
   CliApiClient,
   CliCommandArguments,
@@ -31,11 +31,11 @@ import {
 } from '../../types'
 import {getClientWrapper} from '../../util/clientWrapper'
 import {dynamicRequire} from '../../util/dynamicRequire'
-import {ProjectDefaults, getProjectDefaults} from '../../util/getProjectDefaults'
+import {getProjectDefaults, ProjectDefaults} from '../../util/getProjectDefaults'
 import {getUserConfig} from '../../util/getUserConfig'
 import {isCommandGroup} from '../../util/isCommandGroup'
 import {isInteractive} from '../../util/isInteractive'
-import {LoginFlags, login} from '../login/login'
+import {login, LoginFlags} from '../login/login'
 import {createProject} from '../project/createProject'
 import {BootstrapOptions, bootstrapTemplate} from './bootstrapTemplate'
 import {GenerateConfigOptions} from './createStudioConfig'
@@ -59,6 +59,26 @@ import {
   promptForNextTemplate,
   promptForStudioPath,
 } from './prompts/nextjs'
+import {
+  BootstrapTemplate,
+  CreateDataset,
+  CreateOrAppendEnvVars,
+  DatasetConfigPrompt,
+  ImportTemplateDataset,
+  InitProjectTelemetry,
+  InstallDependencies,
+  PackageManagerPrompt,
+  ProjectSelected,
+  PromptProjectName,
+  SelectCouponTrace,
+  SelectDatasetPrompt,
+  SelectProject,
+  SelectTemplatePrompt,
+  SendCommunityInvitePrompt,
+  ShouldImportDataPrompt,
+  TypeScriptPrompt,
+  UseDetectedFrameworkPrompt,
+} from './__telemetry__/initProject.telemetry'
 
 // eslint-disable-next-line no-process-env
 const isCI = process.env.CI
@@ -97,9 +117,21 @@ export interface ProjectOrganization {
 // eslint-disable-next-line max-statements, complexity
 export default async function initSanity(
   args: CliCommandArguments<InitFlags>,
-  context: CliCommandContext,
+  context: CliCommandContext & {detectedFramework: Framework | null},
 ): Promise<void> {
-  const {output, prompt, workDir, apiClient, chalk, sanityMajorVersion} = context
+  const {
+    output,
+    prompt,
+    workDir,
+    apiClient,
+    chalk,
+    sanityMajorVersion,
+    telemetry,
+    detectedFramework,
+  } = context
+
+  const trace = telemetry.trace(InitProjectTelemetry)
+
   const cliFlags = args.extOptions
   const unattended = cliFlags.y || cliFlags.yes
   const print = unattended ? noop : output.print
@@ -113,6 +145,21 @@ export default async function initSanity(
 
   let defaultConfig = cliFlags['dataset-default']
   let showDefaultConfigPrompt = !defaultConfig
+
+  trace.start()
+  trace.log({
+    step: 'start',
+    flags: {
+      defaultConfig,
+      unattended,
+      plan: intendedPlan,
+      coupon: intendedCoupon,
+      reconfigure,
+      git: commitMessage,
+      bare: bareOutput,
+      env,
+    },
+  })
 
   if (sanityMajorVersion === 2) {
     await reconfigureV2Project(args, context)
@@ -135,8 +182,9 @@ export default async function initSanity(
 
   let selectedPlan: string | undefined
   if (intendedCoupon) {
+    const selectCouponTrace = telemetry.trace(SelectCouponTrace)
     try {
-      selectedPlan = await getPlanFromCoupon(apiClient, intendedCoupon)
+      selectedPlan = await selectCouponTrace.await(getPlanFromCoupon(apiClient, intendedCoupon))
       print(`Coupon "${intendedCoupon}" validated!\n`)
     } catch (err) {
       throw new Error(`Unable to validate coupon code "${intendedCoupon}":\n\n${err.message}`)
@@ -148,12 +196,6 @@ export default async function initSanity(
   if (reconfigure) {
     throw new Error('`--reconfigure` is deprecated - manual configuration is now required')
   }
-
-  // use vercel's framework detector
-  const detectedFramework: Framework | null = await detectFrameworkRecord({
-    fs: new LocalFileSystemDetector(workDir),
-    frameworkList: frameworks as readonly Framework[],
-  })
 
   const envFilename = typeof env === 'string' ? env : '.env'
   if (!envFilename.startsWith('.env')) {
@@ -177,18 +219,23 @@ export default async function initSanity(
   const hasToken = userConfig.get('authToken')
 
   debug(hasToken ? 'User already has a token' : 'User has no token')
-
   if (hasToken) {
+    trace.log({step: 'login', alreadyLoggedIn: true})
     print('Looks like you already have a Sanity-account. Sweet!\n')
   } else if (!unattended) {
+    trace.log({step: 'login'})
     await getOrCreateUser()
   }
 
-  const flags = await prepareFlags()
+  const flags = await trace.await(prepareFlags(), {step: 'prepareFlags'})
 
   // We're authenticated, now lets select or create a project
   debug('Prompting user to select or create a project')
-  const {projectId, displayName, isFirstProject} = await getOrCreateProject()
+
+  const {projectId, displayName, isFirstProject} = await trace.await(
+    getOrCreateProject({telemetry: trace.newContext('getOrCreateProject')}),
+    {step: 'getOrCreateProject'},
+  )
   const sluggedName = deburr(displayName.toLowerCase())
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
@@ -202,6 +249,7 @@ export default async function initSanity(
     displayName,
     dataset: flags.dataset,
     aclMode: flags.visibility,
+    telemetry: trace.newContext('getOrCreateDataset'),
     defaultConfig: flags['dataset-default'],
   })
 
@@ -218,6 +266,7 @@ export default async function initSanity(
     return
   }
 
+  telemetry.log(UseDetectedFrameworkPrompt, {step: 'prompt'})
   const initNext =
     detectedFramework &&
     detectedFramework.slug === 'nextjs' &&
@@ -228,6 +277,11 @@ export default async function initSanity(
       default: true,
     }))
 
+  telemetry.log(UseDetectedFrameworkPrompt, {
+    step: 'done',
+    useDetectedFramework: Boolean(initNext),
+    detectedFramework: detectedFramework?.name,
+  })
   // add more frameworks to this as we add support for them
   // this is used to skip the getProjectInfo prompt
   const initFramework = initNext
@@ -244,8 +298,10 @@ export default async function initSanity(
   outputPath = answers.outputPath
 
   if (initNext) {
-    const useTypeScript = unattended ? true : await promptForTypeScript(prompt)
+    telemetry.log(TypeScriptPrompt, {step: 'prompt'})
 
+    const useTypeScript = unattended ? true : await promptForTypeScript(prompt)
+    telemetry.log(TypeScriptPrompt, {step: 'done', useTypeScript})
     const fileExtension = useTypeScript ? 'ts' : 'js'
 
     const embeddedStudio = unattended ? true : await promptForEmbeddedStudio(prompt)
@@ -346,22 +402,27 @@ export default async function initSanity(
     const appendEnv = unattended ? true : await promptForAppendEnv(prompt, envFilename)
 
     if (appendEnv) {
-      await createOrAppendEnvVars(envFilename, detectedFramework, {
-        log: true,
-      })
+      await telemetry.trace(CreateOrAppendEnvVars).await(
+        createOrAppendEnvVars(envFilename, detectedFramework, {
+          log: true,
+        }),
+      )
     }
-
+    telemetry.log(PackageManagerPrompt, {step: 'prompt'})
+    const installDependenciesTrace = telemetry.trace(InstallDependencies)
     const {chosen} = await getPackageManagerChoice(workDir, {interactive: false})
-
-    await installNewPackages(
-      {
-        packageManager: chosen,
-        packages: ['@sanity/vision@3', 'sanity@3', '@sanity/image-url@1', 'styled-components@6'],
-      },
-      {
-        output: context.output,
-        workDir,
-      },
+    telemetry.log(PackageManagerPrompt, {step: 'done', selectedPackageManager: chosen})
+    await installDependenciesTrace.await(
+      installNewPackages(
+        {
+          packageManager: chosen,
+          packages: ['@sanity/vision@3', 'sanity@3', '@sanity/image-url@1', 'styled-components@6'],
+        },
+        {
+          output: context.output,
+          workDir,
+        },
+      ),
     )
 
     // will refactor this later
@@ -373,11 +434,13 @@ export default async function initSanity(
     }
 
     if (chosen === 'npm') {
-      await execa('npm', ['install', 'next-sanity@5'], execOptions)
+      await installDependenciesTrace.await(execa('npm', ['install', 'next-sanity@5'], execOptions))
     } else if (chosen === 'yarn') {
-      await execa('npx', ['install-peerdeps', '--yarn', 'next-sanity@5'], execOptions)
+      await installDependenciesTrace.await(
+        execa('npx', ['install-peerdeps', '--yarn', 'next-sanity@5'], execOptions),
+      )
     } else if (chosen === 'pnpm') {
-      await execa('pnpm', ['install', 'next-sanity@5'], execOptions)
+      await installDependenciesTrace.await(execa('pnpm', ['install', 'next-sanity@5'], execOptions))
     }
 
     print(
@@ -429,9 +492,10 @@ export default async function initSanity(
     return
   }
 
+  telemetry.log(SelectTemplatePrompt, {step: 'prompt'})
   // Prompt for template to use
   const templateName = await selectProjectTemplate()
-
+  telemetry.log(SelectTemplatePrompt, {step: 'done', selectedTemplate: templateName})
   const template = templates[templateName]
   if (!template) {
     throw new Error(`Template "${templateName}" not found`)
@@ -443,7 +507,9 @@ export default async function initSanity(
   if (!typescriptOnly && typeof cliFlags.typescript === 'boolean') {
     useTypeScript = cliFlags.typescript
   } else if (!typescriptOnly && !unattended) {
+    telemetry.log(TypeScriptPrompt, {step: 'prompt'})
     useTypeScript = await promptForTypeScript(prompt)
+    telemetry.log(TypeScriptPrompt, {step: 'done', useTypeScript})
   }
 
   // Build a full set of resolved options
@@ -460,18 +526,26 @@ export default async function initSanity(
   }
 
   // If the template has a sample dataset, prompt the user whether or not we should import it
+  telemetry.log(ShouldImportDataPrompt, {step: 'prompt'})
   const shouldImport =
     !unattended && template.datasetUrl && (await promptForDatasetImport(template.importPrompt))
 
+  telemetry.log(ShouldImportDataPrompt, {step: 'done', shouldImport: Boolean(shouldImport)})
+
   // Bootstrap Sanity, creating required project files, manifests etc
-  await bootstrapTemplate(templateOptions, context)
+  await telemetry.trace(BootstrapTemplate).await(bootstrapTemplate(templateOptions, context))
 
   // Now for the slow part... installing dependencies
   const pkgManager = await getPackageManagerChoice(outputPath, {
     prompt,
     interactive: unattended ? false : isInteractive,
   })
-  await installDeclaredPackages(outputPath, pkgManager.chosen, context)
+
+  const installDependenciesTrace = telemetry.trace(InstallDependencies)
+
+  await installDependenciesTrace.await(
+    installDeclaredPackages(outputPath, pkgManager.chosen, context),
+  )
 
   // Try initializing a git repository
   if (useGit) {
@@ -481,14 +555,16 @@ export default async function initSanity(
   // Prompt for dataset import (if a dataset is defined)
   if (shouldImport) {
     const importCommand = getImportCommand(outputPath, 3)
-    await doDatasetImport({
-      projectId,
-      outputPath,
-      importCommand,
-      template,
-      datasetName,
-      context,
-    })
+    await telemetry.trace(ImportTemplateDataset).await(
+      doDatasetImport({
+        projectId,
+        outputPath,
+        importCommand,
+        template,
+        datasetName,
+        context,
+      }),
+    )
 
     if (await hasGlobalCli()) {
       print('')
@@ -534,6 +610,7 @@ export default async function initSanity(
     }))
 
   if (sendInvite) {
+    telemetry.log(SendCommunityInvitePrompt, {step: 'done', sendInvite: Boolean(sendInvite)})
     // Intentionally leave the promise "dangling" since we don't want to stall while waiting for this
     apiClient({requireProject: false})
       .request({
@@ -550,14 +627,14 @@ export default async function initSanity(
     // Provide login options (`sanity login`)
     const {extOptions, ...otherArgs} = args
     const loginArgs: CliCommandArguments<LoginFlags> = {...otherArgs, extOptions: {}}
-    await login(loginArgs, context)
+    await login(loginArgs, {...context, telemetry: trace.newContext('login')})
 
     print("Good stuff, you're now authenticated. You'll need a project to keep your")
     print('datasets and collaborators safe and snug.')
   }
 
   // eslint-disable-next-line complexity
-  async function getOrCreateProject(): Promise<{
+  async function getOrCreateProject(options: {telemetry: TelemetryLogger}): Promise<{
     projectId: string
     displayName: string
     isFirstProject: boolean
@@ -576,10 +653,12 @@ export default async function initSanity(
       spinner.succeed()
     } catch (err) {
       if (unattended && flags.project) {
+        options.telemetry.log(ProjectSelected, {
+          unattended: true,
+        })
         spinner.succeed()
         return {projectId: flags.project, displayName: 'Unknown project', isFirstProject: false}
       }
-
       spinner.fail()
       throw new Error(`Failed to communicate with the Sanity API:\n${err.message}`)
     }
@@ -595,6 +674,7 @@ export default async function initSanity(
           `Given project ID (${flags.project}) not found, or you do not have access to it`,
         )
       }
+      options.telemetry.log(ProjectSelected, undefined)
 
       return {
         projectId: flags.project,
@@ -630,8 +710,11 @@ export default async function initSanity(
           ? 'No projects found for user, prompting for name'
           : 'Using a coupon - skipping project selection',
       )
-
+      options.telemetry.log(PromptProjectName, {step: 'start'})
       const projectName = await prompt.single({type: 'input', message: 'Project name:'})
+      options.telemetry.log(PromptProjectName, {step: 'complete'})
+      options.telemetry.log(ProjectSelected, {coupon: intendedCoupon})
+
       return createProject(apiClient, {
         displayName: projectName,
         organizationId: await getOrganizationId(organizations),
@@ -644,6 +727,8 @@ export default async function initSanity(
     }
 
     debug(`User has ${projects.length} project(s) already, showing list of choices`)
+
+    options.telemetry.log(SelectProject, {step: 'prompt'})
 
     const projectChoices = projects.map((project) => ({
       value: project.id,
@@ -658,6 +743,11 @@ export default async function initSanity(
         new prompt.Separator(),
         ...projectChoices,
       ],
+    })
+
+    options.telemetry.log(SelectProject, {
+      step: 'done',
+      selected: selected === 'new' ? 'new' : 'existing',
     })
 
     if (selected === 'new') {
@@ -691,6 +781,7 @@ export default async function initSanity(
     dataset?: string
     aclMode?: string
     defaultConfig?: boolean
+    telemetry: TelemetryLogger
   }) {
     if (opts.dataset && (isCI || unattended)) {
       return {datasetName: opts.dataset}
@@ -765,6 +856,7 @@ export default async function initSanity(
 
     debug(`User has ${datasets.length} dataset(s) already, showing list of choices`)
     const datasetChoices = datasets.map((dataset) => ({value: dataset.name}))
+    telemetry.log(SelectDatasetPrompt, {step: 'prompt'})
 
     const selected = await prompt.single({
       message: 'Select dataset to use',
@@ -775,11 +867,16 @@ export default async function initSanity(
         ...datasetChoices,
       ],
     })
+    telemetry.log(SelectDatasetPrompt, {
+      step: 'done',
+      selected: selected == 'new' ? 'new' : 'existing',
+    })
 
     if (selected === 'new') {
       const existingDatasetNames = datasets.map((ds) => ds.name)
       debug('User wants to create a new dataset, prompting for name')
       if (showDefaultConfigPrompt && !existingDatasetNames.includes('production')) {
+        telemetry.log(DatasetConfigPrompt, {step: 'prompt'})
         output.print(datasetInfo)
         defaultConfig = await promptForDefaultConfig(prompt)
       }
@@ -794,8 +891,17 @@ export default async function initSanity(
             existingDatasetNames,
           )
       const aclMode = await getAclMode()
+      telemetry.log(DatasetConfigPrompt, {
+        step: 'done',
+        aclMode,
+        isDefault: Boolean(defaultConfig),
+      })
+
       const spinner = context.output.spinner('Creating dataset').start()
-      await client.datasets.create(newDatasetName, {aclMode: aclMode as DatasetAclMode})
+      const createDatasetTrace = telemetry.trace(CreateDataset)
+      await createDatasetTrace.await(
+        client.datasets.create(newDatasetName, {aclMode: aclMode as DatasetAclMode}),
+      )
       spinner.succeed()
       return {datasetName: newDatasetName}
     }
