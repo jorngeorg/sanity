@@ -27,3 +27,5 @@
 /packages/@sanity/cli/templates/shopify* @thebiggianthead
 
 /packages/sanity/src/desk/comments/ @hermanwikner
+
+*.telemetry.ts @svirs
