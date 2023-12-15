@@ -2,7 +2,7 @@
 import {Box, Flex, Grid, rem, Stack, Text, Theme, useForwardedRef} from '@sanity/ui'
 import React, {forwardRef, useCallback, useMemo} from 'react'
 import styled, {css} from 'styled-components'
-import {FormNodeValidation} from '@sanity/types'
+import {DeprecatedProperty, FormNodeValidation} from '@sanity/types'
 import {FormNodePresence} from '../../../presence'
 import {DocumentFieldActionNode} from '../../../config'
 import {useFieldActions} from '../../field'
@@ -48,6 +48,7 @@ export interface FormFieldSetProps {
    */
   validation?: FormNodeValidation[]
   inputId: string
+  deprecated?: DeprecatedProperty
 }
 
 function getChildren(children: React.ReactNode | (() => React.ReactNode)): React.ReactNode {
@@ -116,6 +117,7 @@ export const FormFieldSet = forwardRef(function FormFieldSet(
     title,
     validation = EMPTY_ARRAY,
     inputId,
+    deprecated,
     ...restProps
   } = props
 
@@ -151,6 +153,8 @@ export const FormFieldSet = forwardRef(function FormFieldSet(
     )
   }, [children, collapsed, columns])
 
+  const isDeprecated = Boolean(deprecated?.reason)
+
   return (
     <Root data-level={level} {...restProps} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <FormFieldBaseHeader
@@ -161,7 +165,13 @@ export const FormFieldSet = forwardRef(function FormFieldSet(
         fieldHovered={hovered}
         presence={presence}
         content={
-          <Stack space={2}>
+          <Stack
+            space={2}
+            style={{
+              opacity: isDeprecated ? 0.5 : undefined,
+            }}
+          >
+            {isDeprecated && <p style={{margin: 0, color: 'red'}}>{deprecated.reason}</p>}
             <Flex>
               <FormFieldSetLegend
                 collapsed={Boolean(collapsed)}
@@ -169,7 +179,6 @@ export const FormFieldSet = forwardRef(function FormFieldSet(
                 onClick={collapsible ? handleToggle : undefined}
                 title={title}
               />
-
               {hasValidationMarkers && (
                 <Box marginLeft={2}>
                   <FormFieldValidationStatus fontSize={1} validation={validation} />
