@@ -15,7 +15,7 @@ import {
   StringSchemaType,
 } from '@sanity/types'
 import React, {ComponentType, FocusEventHandler, FormEventHandler} from 'react'
-import {HotkeyOptions, OnCopyFn, OnPasteFn} from '@sanity/portable-text-editor'
+import {HotkeyOptions, OnCopyFn, OnPasteFn, RangeDecoration} from '@sanity/portable-text-editor'
 import {FormPatch, PatchEvent} from '../patch'
 import {
   ArrayOfObjectsFormNode,
@@ -508,6 +508,10 @@ export interface PortableTextInputProps
    * Use the `renderBlock` interface instead.
    */
   renderCustomMarkers?: RenderCustomMarkers
+  /**
+   * Array of {@link RangeDecoration} that can be used to decorate the content.
+   */
+  rangeDecorations?: RangeDecoration[]
 }
 
 /**
