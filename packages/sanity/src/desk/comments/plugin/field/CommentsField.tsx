@@ -43,7 +43,7 @@ const SCROLL_INTO_VIEW_OPTIONS: ScrollIntoViewOptions = {
 
 const HighlightDiv = styled(motion.div)(({theme}) => {
   const {radius, space, color} = theme.sanity
-  const bg = hues.blue[color.dark ? 900 : 50].hex
+  const bg = hues.yellow[color.dark ? 900 : 50].hex
 
   return css`
     mix-blend-mode: ${color.dark ? 'screen' : 'multiply'};
@@ -175,6 +175,8 @@ function CommentFieldInner(props: FieldProps) {
         parentCommentId: undefined,
         status: 'open',
         threadId: newThreadId,
+        // New comments have no reactions
+        reactions: [],
       }
 
       // Execute the create mutation

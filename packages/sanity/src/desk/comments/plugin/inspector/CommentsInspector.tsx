@@ -1,5 +1,5 @@
 import {Flex, Layer, useClickOutside, useLayer, useToast} from '@sanity/ui'
-import React, {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import * as PathUtils from '@sanity/util/paths'
 import styled from 'styled-components'
 import {usePaneRouter} from '../../../components'
@@ -18,6 +18,7 @@ import {
   CommentsSelectedPath,
   useCommentsSelectedPath,
   useCommentsEnabled,
+  CommentReactionOption,
 } from '../../src'
 import {CommentsInspectorHeader} from './CommentsInspectorHeader'
 import {CommentsInspectorFeedbackFooter} from './CommentsInspectorFeedbackFooter'
@@ -80,6 +81,7 @@ function CommentsInspectorInner(props: DocumentInspectorProps) {
     getComment,
     isRunningSetup,
     mentionOptions,
+    react,
     remove,
     setStatus,
     status,
@@ -152,6 +154,7 @@ function CommentsInspectorInner(props: DocumentInspectorProps) {
         id: comment._id,
         message: comment.message,
         parentCommentId: comment.parentCommentId,
+        reactions: comment.reactions || [],
         status: comment.status,
         threadId: comment.threadId,
       })
@@ -269,6 +272,13 @@ function CommentsInspectorInner(props: DocumentInspectorProps) {
     [handleScrollToComment, setStatus, update],
   )
 
+  const handleReactionSelect = useCallback(
+    (id: string, reaction: CommentReactionOption) => {
+      react.execute(id, reaction)
+    },
+    [react],
+  )
+
   const handleDeselectPath = useCallback(() => {
     // Clear the selected path when clicking outside the comments inspector.
     // We do this only when the comments inspector is the top layer.
@@ -351,6 +361,7 @@ function CommentsInspectorInner(props: DocumentInspectorProps) {
             onEdit={handleEdit}
             onNewThreadCreate={handleNewThreadCreate}
             onPathSelect={handlePathSelect}
+            onReactionSelect={handleReactionSelect}
             onReply={handleReply}
             onStatusChange={handleStatusChange}
             readOnly={isRunningSetup}

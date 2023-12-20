@@ -9,6 +9,7 @@ import {
   CommentDocument,
   CommentEditPayload,
   CommentMessage,
+  CommentReactionOption,
   CommentStatus,
   MentionOptionsHookValue,
 } from '../../types'
@@ -85,6 +86,7 @@ interface CommentsListItemProps {
   onEdit: (id: string, payload: CommentEditPayload) => void
   onKeyDown?: (event: React.KeyboardEvent<Element>) => void
   onPathSelect?: (nextPath: CommentsSelectedPath) => void
+  onReactionSelect?: (id: string, reaction: CommentReactionOption) => void
   onReply: (payload: CommentCreatePayload) => void
   onStatusChange?: (id: string, status: CommentStatus) => void
   parentComment: CommentDocument
@@ -104,6 +106,7 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
     onEdit,
     onKeyDown,
     onPathSelect,
+    onReactionSelect,
     onReply,
     onStatusChange,
     parentComment,
@@ -130,6 +133,8 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
       status: parentComment?.status || 'open',
       // Since this is a reply to an existing comment, we use the same thread ID as the parent
       threadId: parentComment.threadId,
+      // A new comment will not have any reactions
+      reactions: EMPTY_ARRAY,
     }
 
     onReply?.(nextComment)
@@ -231,11 +236,12 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
             hasError={reply._state?.type === 'createError'}
             isRetrying={reply._state?.type === 'createRetrying'}
             mentionOptions={mentionOptions}
-            onInputKeyDown={handleInputKeyDown}
             onCopyLink={onCopyLink}
             onCreateRetry={onCreateRetry}
             onDelete={onDelete}
             onEdit={onEdit}
+            onInputKeyDown={handleInputKeyDown}
+            onReactionSelect={onReactionSelect}
             readOnly={readOnly}
           />
         </Stack>
@@ -248,6 +254,7 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
       onCreateRetry,
       onDelete,
       onEdit,
+      onReactionSelect,
       readOnly,
       splicedReplies,
     ],
@@ -261,7 +268,7 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
         onClick={handleThreadRootClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        tone={isSelected ? 'primary' : undefined}
+        tone={isSelected ? 'caution' : undefined}
       >
         <GhostButton data-ui="GhostButton" aria-label="Go to field" />
 
@@ -287,6 +294,7 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
               onDelete={onDelete}
               onEdit={onEdit}
               onInputKeyDown={onKeyDown}
+              onReactionSelect={onReactionSelect}
               onStatusChange={onStatusChange}
               readOnly={readOnly}
             />

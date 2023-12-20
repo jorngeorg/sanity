@@ -110,7 +110,7 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
   const getComment = useCallback((id: string) => data?.find((c) => c._id === id), [data])
 
   const handleOnCreate = useCallback(
-    async (payload: CommentPostPayload) => {
+    (payload: CommentPostPayload) => {
       // If the comment we try to create already exists in the local state and has
       // the 'createError' state, we know that we are retrying a comment creation.
       // In that case, we want to change the state to 'createRetrying'.
@@ -184,6 +184,7 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
         schemaType,
         workspace: workspaceName,
         getThreadLength,
+        getComment,
         // This function runs when the first comment creation is executed.
         // It is used to create the addon dataset and configure a client for
         // the addon dataset.
@@ -209,6 +210,7 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
         schemaType,
         workspaceName,
         getThreadLength,
+        getComment,
         runSetup,
         handleOnCreate,
         handleOnCreateError,
@@ -247,6 +249,9 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
       update: {
         execute: operation.update,
       },
+      react: {
+        execute: operation.react,
+      },
       mentionOptions,
     }),
     [
@@ -259,6 +264,7 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
       onCommentsOpen,
       operation.create,
       operation.edit,
+      operation.react,
       operation.remove,
       operation.update,
       status,

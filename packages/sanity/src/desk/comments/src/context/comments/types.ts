@@ -43,6 +43,10 @@ export interface CommentsContextValue {
     execute: CommentOperations['update']
   }
 
+  react: {
+    execute: CommentOperations['react']
+  }
+
   mentionOptions: MentionOptionsHookValue
 
   status: CommentStatus

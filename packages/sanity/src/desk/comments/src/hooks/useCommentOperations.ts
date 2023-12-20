@@ -5,9 +5,12 @@ import {SanityClient} from '@sanity/client'
 import {
   CommentContext,
   CommentCreatePayload,
+  CommentDocument,
   CommentEditPayload,
   CommentOperations,
   CommentPostPayload,
+  CommentReactionItem,
+  CommentReactionOption,
 } from '../types'
 import {useNotificationTarget} from './useNotificationTarget'
 import {useWorkspace} from 'sanity'
@@ -29,6 +32,7 @@ export interface CommentOperationsHookOptions {
   workspace: string
 
   getThreadLength?: (threadId: string) => number
+  getComment?: (id: string) => CommentDocument | undefined
 
   onCreate?: (comment: CommentPostPayload) => void
   onCreateError: (id: string, error: Error) => void
@@ -48,6 +52,7 @@ export function useCommentOperations(
     dataset,
     documentId,
     documentType,
+    getComment,
     getThreadLength,
     onCreate,
     onCreateError,
@@ -115,6 +120,9 @@ export function useCommentOperations(
           notification,
           tool: activeTool?.name || '',
         },
+
+        reactions: [],
+
         target: {
           path: {
             field: comment.fieldPath,
@@ -228,15 +236,49 @@ export function useCommentOperations(
     [client, onUpdate],
   )
 
-  const operation = useMemo(
-    () => ({
-      create: handleCreate,
-      edit: handleEdit,
-      remove: handleRemove,
-      update: handleUpdate,
-    }),
-    [handleCreate, handleRemove, handleEdit, handleUpdate],
+  const handleReact = useCallback(
+    async (id: string, reaction: CommentReactionOption) => {
+      if (!client || !currentUser?.id) return
+
+      const reactions = getComment?.(id)?.reactions || []
+      const currentUserReactions = reactions.filter((r) => r.userId === currentUser.id)
+      const currentReaction = currentUserReactions.find((r) => r.name === reaction.name)
+
+      if (currentReaction) {
+        await client
+          .patch(id)
+          .unset([`reactions[_key=="${currentReaction._key}"]`])
+          .commit()
+        return
+      }
+
+      const reactionItem: CommentReactionItem = {
+        _key: uuid(),
+        name: reaction.name,
+        userId: currentUser?.id,
+      }
+
+      await client
+        .patch(id)
+        .setIfMissing({reactions: []})
+        .append('reactions', [reactionItem])
+        .commit()
+    },
+    [client, currentUser, getComment],
   )
 
-  return {operation}
+  const operations = useMemo(
+    () => ({
+      operation: {
+        create: handleCreate,
+        edit: handleEdit,
+        react: handleReact,
+        remove: handleRemove,
+        update: handleUpdate,
+      } satisfies CommentOperations,
+    }),
+    [handleCreate, handleEdit, handleRemove, handleUpdate, handleReact],
+  )
+
+  return operations
 }
