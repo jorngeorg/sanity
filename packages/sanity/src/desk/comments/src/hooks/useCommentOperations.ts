@@ -245,6 +245,10 @@ export function useCommentOperations(
       const currentReaction = currentUserReactions.find((r) => r.name === reaction.name)
 
       if (currentReaction) {
+        const next = reactions.filter((r) => r._key !== currentReaction._key)
+
+        onUpdate?.(id, {reactions: next})
+
         await client
           .patch(id)
           .unset([`reactions[_key=="${currentReaction._key}"]`])
@@ -255,8 +259,12 @@ export function useCommentOperations(
       const reactionItem: CommentReactionItem = {
         _key: uuid(),
         name: reaction.name,
-        userId: currentUser?.id,
+        userId: currentUser.id,
       }
+
+      const next = reactions.concat(reactionItem)
+
+      onUpdate?.(id, {reactions: next})
 
       await client
         .patch(id)
@@ -264,7 +272,7 @@ export function useCommentOperations(
         .append('reactions', [reactionItem])
         .commit()
     },
-    [client, currentUser, getComment],
+    [client, currentUser?.id, getComment, onUpdate],
   )
 
   const operations = useMemo(
