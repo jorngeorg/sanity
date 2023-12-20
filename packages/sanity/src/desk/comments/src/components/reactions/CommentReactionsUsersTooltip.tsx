@@ -4,7 +4,7 @@ import styled from 'styled-components'
 import {COMMENT_REACTION_EMOJIS} from '../../constants'
 import {CommentReactionOptionNames} from '../../types'
 import {Tooltip} from '../../../../../ui-components'
-import {useCurrentUser, useUser} from 'sanity'
+import {CurrentUser, useUser} from 'sanity'
 
 const TEXT_SIZE = 1
 
@@ -41,13 +41,13 @@ function UserDisplayName(props: UserDisplayNameProps) {
 
 interface CommentReactionsUsersTooltipProps {
   children: React.ReactNode
+  currentUser: CurrentUser
   reactionName: CommentReactionOptionNames
   userIds: string[]
 }
 
 export function CommentReactionsUsersTooltip(props: CommentReactionsUsersTooltipProps) {
-  const {children, reactionName, userIds} = props
-  const currentUser = useCurrentUser()
+  const {children, currentUser, reactionName, userIds} = props
 
   const content = useMemo(() => {
     const len = userIds.length

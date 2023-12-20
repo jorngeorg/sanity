@@ -109,7 +109,12 @@ export function CommentReactionsBar(props: CommentReactionsBarProps) {
           const userIds = usersPerReaction[name]
 
           return (
-            <CommentReactionsUsersTooltip key={name} reactionName={name} userIds={userIds}>
+            <CommentReactionsUsersTooltip
+              currentUser={currentUser}
+              key={name}
+              reactionName={name}
+              userIds={userIds}
+            >
               <ReactionButtonCard
                 radius={6}
                 type="button"
