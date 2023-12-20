@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {Flex, Stack} from '@sanity/ui'
+import {Flex, Stack, useLayer} from '@sanity/ui'
 import styled, {css} from 'styled-components'
 import {CurrentUser} from '@sanity/types'
 import {ChevronDownIcon} from '@sanity/icons'
@@ -118,6 +118,8 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
   const didExpand = useRef<boolean>(false)
   const replyInputRef = useRef<CommentInputHandle>(null)
 
+  const {isTopLayer} = useLayer()
+
   const hasValue = useMemo(() => hasCommentMessageValue(value), [value])
 
   const [mouseOver, setMouseOver] = useState<boolean>(false)
@@ -187,13 +189,17 @@ export const CommentsListItem = React.memo(function CommentsListItem(props: Comm
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation()
 
+      // Don't act if the click was caused by clicking
+      // outside e.g. a popover or a menu
+      if (!isTopLayer) return
+
       onPathSelect?.({
         fieldPath: parentComment.target.path.field,
         origin: 'inspector',
         threadId: parentComment.threadId,
       })
     },
-    [onPathSelect, parentComment.target.path.field, parentComment.threadId],
+    [isTopLayer, onPathSelect, parentComment.target.path.field, parentComment.threadId],
   )
 
   const handleExpand = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {

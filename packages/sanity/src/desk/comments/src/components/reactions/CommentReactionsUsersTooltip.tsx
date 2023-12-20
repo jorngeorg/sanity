@@ -1,5 +1,5 @@
 import {Flex, Text, Stack} from '@sanity/ui'
-import React, {useMemo} from 'react'
+import React, {Fragment, useMemo} from 'react'
 import styled from 'styled-components'
 import {COMMENT_REACTION_EMOJIS} from '../../constants'
 import {CommentReactionOptionNames} from '../../types'
@@ -13,7 +13,7 @@ const EmojiText = styled(Text)`
 `
 
 const ContentStack = styled(Stack)`
-  max-width: 250px;
+  max-width: 220px;
 `
 
 const InlineText = styled(Text).attrs({size: TEXT_SIZE})`
@@ -23,16 +23,18 @@ const InlineText = styled(Text).attrs({size: TEXT_SIZE})`
 interface UserDisplayNameProps {
   currentUserId: string
   isFirst?: boolean
+  separator?: boolean
   userId: string
 }
 
 function UserDisplayName(props: UserDisplayNameProps) {
-  const {currentUserId, isFirst, userId} = props
+  const {currentUserId, isFirst, userId, separator} = props
   const [user] = useUser(userId)
 
   const isCurrentUser = currentUserId === userId
   const you = isFirst ? 'You' : 'you'
-  const text = isCurrentUser ? you : user?.displayName ?? 'Unknown user'
+  const content = isCurrentUser ? you : user?.displayName ?? 'Unknown user'
+  const text = separator ? `${content}, ` : content
 
   return <InlineText weight="medium">{text}</InlineText>
 }
@@ -69,16 +71,17 @@ export function CommentReactionsUsersTooltip(props: CommentReactionsUsersTooltip
     }
 
     const last = userIds[len - 1]
-    const others = userIds
-      .slice(0, 2)
-      .map((id, index) => (
+    const othersArr = userIds.slice(0, 2)
+    const others = userIds.slice(0, 2).map((id, index) => (
+      <Fragment key={id}>
         <UserDisplayName
           currentUserId={currentUser.id}
           isFirst={index === 0}
-          key={id}
+          separator={index < othersArr.length - 1}
           userId={id}
-        />
-      ))
+        />{' '}
+      </Fragment>
+    ))
 
     return (
       <>
@@ -91,6 +94,7 @@ export function CommentReactionsUsersTooltip(props: CommentReactionsUsersTooltip
   return (
     <Tooltip
       placement="bottom"
+      portal
       content={
         <ContentStack padding={1} paddingBottom={2} space={2}>
           <Flex justify="center">
@@ -98,8 +102,9 @@ export function CommentReactionsUsersTooltip(props: CommentReactionsUsersTooltip
           </Flex>
 
           <div>
-            {content} <InlineText muted>reacted with</InlineText>{' '}
-            <InlineText muted>{reactionName}</InlineText>
+            {content}
+            <wbr /> <InlineText muted>reacted with </InlineText>
+            <wbr /> <InlineText muted>{reactionName}</InlineText>
           </div>
         </ContentStack>
       }
