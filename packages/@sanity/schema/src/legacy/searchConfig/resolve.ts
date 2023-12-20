@@ -1,4 +1,4 @@
-import {isNumber, uniqBy} from 'lodash'
+import {uniqBy} from 'lodash'
 
 export const DEFAULT_MAX_FIELD_DEPTH = 4
 
@@ -71,9 +71,12 @@ const PREVIEW_FIELD_WEIGHT_MAP = {
 /**
  * @internal
  */
-export function deriveFromPreview(type: {
-  preview: {select: Record<string, string>}
-}): {weight?: number; path: (string | number)[]}[] {
+export function deriveFromPreview(
+  type: {
+    preview: {select: Record<string, string>}
+  },
+  maxDepth: number,
+): {weight?: number; path: (string | number)[]}[] {
   const select = type?.preview?.select
 
   if (!select) {
@@ -86,6 +89,7 @@ export function deriveFromPreview(type: {
       weight: PREVIEW_FIELD_WEIGHT_MAP[fieldName],
       path: select[fieldName].split('.'),
     }))
+    .filter((spec) => spec.path.length <= maxDepth)
 }
 
 function getCachedStringFieldPaths(type, maxDepth) {
@@ -94,7 +98,7 @@ function getCachedStringFieldPaths(type, maxDepth) {
     type[symbol] = uniqBy(
       [
         ...BASE_WEIGHTS,
-        ...deriveFromPreview(type),
+        ...deriveFromPreview(type, maxDepth),
         ...getStringFieldPaths(type, maxDepth).map((path) => ({weight: 1, path})),
         ...getPortableTextFieldPaths(type, maxDepth).map((path) => ({
           weight: 1,
@@ -111,8 +115,9 @@ function getCachedStringFieldPaths(type, maxDepth) {
 function getCachedBaseFieldPaths(type) {
   const symbol = getStringFieldSymbol(DEFAULT_MAX_FIELD_DEPTH)
   if (!type[symbol]) {
-    type[symbol] = uniqBy([...BASE_WEIGHTS, ...deriveFromPreview(type)], (spec) =>
-      spec.path.join('.'),
+    type[symbol] = uniqBy(
+      [...BASE_WEIGHTS, ...deriveFromPreview(type, DEFAULT_MAX_FIELD_DEPTH)],
+      (spec) => spec.path.join('.'),
     )
   }
   return type[symbol]
@@ -140,5 +145,5 @@ export function resolveSearchConfigForBaseFieldPaths(type) {
  * @internal
  */
 export function resolveSearchConfig(type, maxDepth?: number) {
-  return getCachedStringFieldPaths(type, isNumber(maxDepth) ? maxDepth : DEFAULT_MAX_FIELD_DEPTH)
+  return getCachedStringFieldPaths(type, maxDepth ?? DEFAULT_MAX_FIELD_DEPTH)
 }
