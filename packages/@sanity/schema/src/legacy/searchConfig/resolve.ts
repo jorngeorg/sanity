@@ -83,13 +83,26 @@ export function deriveFromPreview(
     return []
   }
 
-  return Object.keys(select)
-    .filter((fieldName) => fieldName in PREVIEW_FIELD_WEIGHT_MAP)
-    .map((fieldName) => ({
+  const fields: {weight: number; path: (string | number)[]}[] = []
+
+  for (const fieldName of Object.keys(select)) {
+    if (!(fieldName in PREVIEW_FIELD_WEIGHT_MAP)) {
+      continue
+    }
+
+    const path = select[fieldName].split('.')
+
+    if (maxDepth > -1 && path.length - 1 > maxDepth) {
+      continue
+    }
+
+    fields.push({
       weight: PREVIEW_FIELD_WEIGHT_MAP[fieldName],
-      path: select[fieldName].split('.'),
-    }))
-    .filter((spec) => spec.path.length - 1 <= maxDepth || maxDepth < 0)
+      path,
+    })
+  }
+
+  return fields
 }
 
 function getCachedStringFieldPaths(type, maxDepth = DEFAULT_MAX_FIELD_DEPTH) {
