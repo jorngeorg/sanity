@@ -1,5 +1,5 @@
-import {Schema, defineField, defineType} from '@sanity/types'
-import {Schema as SchemaBuilder} from '@sanity/schema'
+import {type Schema, defineField, defineType} from '@sanity/types'
+import {Schema as SchemaBuilder} from '../Schema'
 import {resolveSearchConfig, resolveSearchConfigForBaseFieldPaths} from './resolve'
 
 describe('searchConfig', () => {
