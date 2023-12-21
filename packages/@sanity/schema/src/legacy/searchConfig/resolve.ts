@@ -89,7 +89,7 @@ export function deriveFromPreview(
       weight: PREVIEW_FIELD_WEIGHT_MAP[fieldName],
       path: select[fieldName].split('.'),
     }))
-    .filter((spec) => spec.path.length <= maxDepth)
+    .filter((spec) => spec.path.length - 1 <= maxDepth || maxDepth < 0)
 }
 
 function getCachedStringFieldPaths(type, maxDepth = DEFAULT_MAX_FIELD_DEPTH) {
