@@ -31,9 +31,17 @@ describe('searchConfig', () => {
               title: 'Nested object',
               type: 'object',
               fields: [
-                {name: 'field1', type: 'string', description: 'This is a string field'},
-                {name: 'field2', type: 'string', description: 'This is a collapsed field'},
-                {
+                defineField({
+                  name: 'field1',
+                  type: 'string',
+                  description: 'This is a string field',
+                }),
+                defineField({
+                  name: 'field2',
+                  type: 'string',
+                  description: 'This is a collapsed field',
+                }),
+                defineField({
                   name: 'field3',
                   type: 'object',
                   fields: [
@@ -51,7 +59,7 @@ describe('searchConfig', () => {
                       ],
                     },
                   ],
-                },
+                }),
               ],
             }),
           ],
@@ -120,6 +128,17 @@ describe('searchConfig', () => {
         {path: ['_id'], weight: 1},
         {path: ['_type'], weight: 1},
         {path: ['name'], weight: 10},
+      ])
+    })
+    test('resolve negative level document preview paths', () => {
+      const schema = getTestSchema()
+      const type = schema.get('author')
+
+      expect(resolveSearchConfigForBaseFieldPaths(type, -1)).toMatchObject([
+        {path: ['_id'], weight: 1},
+        {path: ['_type'], weight: 1},
+        {path: ['name'], weight: 10},
+        {path: ['nestedObject', 'field1'], weight: 5},
       ])
     })
     test('resolve 1st level document preview paths', () => {
