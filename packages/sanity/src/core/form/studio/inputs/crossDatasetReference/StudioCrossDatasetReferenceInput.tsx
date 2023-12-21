@@ -79,7 +79,6 @@ export function StudioCrossDatasetReferenceInput(props: StudioCrossDatasetRefere
   const source = useSource()
   const client = source.getClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
   const documentPreviewStore = useDocumentPreviewStore()
-  const maxFieldDepth = useSearchMaxFieldDepth()
   const getClient = source.getClient
 
   const crossDatasetClient = useMemo(() => {
@@ -95,7 +94,7 @@ export function StudioCrossDatasetReferenceInput(props: StudioCrossDatasetRefere
         .clone()
     )
   }, [client, schemaType.dataset])
-
+  const maxFieldDepth = useSearchMaxFieldDepth(crossDatasetClient)
   const documentValue = useFormValue([]) as FIXME
   const documentRef = useValueRef(documentValue)
 
