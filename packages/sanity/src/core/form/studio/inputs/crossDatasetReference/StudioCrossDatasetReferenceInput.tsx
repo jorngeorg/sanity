@@ -86,7 +86,7 @@ export function StudioCrossDatasetReferenceInput(props: StudioCrossDatasetRefere
       client
         .withConfig({
           dataset: schemaType.dataset,
-          apiVersion: '2022-03-07',
+          apiVersion: '2023-11-13',
           ignoreBrowserTokenWarning: true,
         })
 
