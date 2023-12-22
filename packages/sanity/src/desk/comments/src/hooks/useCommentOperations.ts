@@ -245,10 +245,12 @@ export function useCommentOperations(
       const currentReaction = currentUserReactions.find((r) => r.name === reaction.name)
 
       if (currentReaction) {
+        // Pass the updated reactions to the onUpdate callback
+        // to instantly update the UI.
         const next = reactions.filter((r) => r._key !== currentReaction._key)
-
         onUpdate?.(id, {reactions: next})
 
+        // Unset the reaction
         await client
           .patch(id)
           .unset([`reactions[_key=="${currentReaction._key}"]`])
@@ -256,16 +258,19 @@ export function useCommentOperations(
         return
       }
 
+      // The new reaction item to add to the comment
       const reactionItem: CommentReactionItem = {
         _key: uuid(),
         name: reaction.name,
         userId: currentUser.id,
       }
 
+      // Pass the updated reactions to the onUpdate callback
+      // to instantly update the UI.
       const next = reactions.concat(reactionItem)
-
       onUpdate?.(id, {reactions: next})
 
+      // Append the new reaction to the comment
       await client
         .patch(id)
         .setIfMissing({reactions: []})
@@ -275,7 +280,7 @@ export function useCommentOperations(
     [client, currentUser?.id, getComment, onUpdate],
   )
 
-  const operations = useMemo(
+  return useMemo(
     () => ({
       operation: {
         create: handleCreate,
@@ -287,6 +292,4 @@ export function useCommentOperations(
     }),
     [handleCreate, handleEdit, handleRemove, handleUpdate, handleReact],
   )
-
-  return operations
 }

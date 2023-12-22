@@ -189,7 +189,7 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
         // It is used to create the addon dataset and configure a client for
         // the addon dataset.
         runSetup,
-        // The following callbacks runs when the comment operations are executed.
+        // The following callbacks runs when the comment operation are executed.
         // They are used to update the local state of the comments immediately after
         // a comment operation has been executed. This is done to avoid waiting for
         // the real time listener to update the comments and make the UI feel more
@@ -237,20 +237,13 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
         error,
         loading: loading || isRunningSetup,
       },
-      create: {
-        execute: operation.create,
-      },
-      remove: {
-        execute: operation.remove,
-      },
-      edit: {
-        execute: operation.edit,
-      },
-      update: {
-        execute: operation.update,
-      },
-      react: {
-        execute: operation.react,
+
+      operation: {
+        create: operation.create,
+        edit: operation.edit,
+        react: operation.react,
+        remove: operation.remove,
+        update: operation.update,
       },
       mentionOptions,
     }),

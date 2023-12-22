@@ -89,7 +89,7 @@ export function CommentsSetupProvider(props: CommentsSetupProviderProps) {
         }
 
         // 3. Create a client for the addon dataset and set it in the context value
-        //    so that the consumers can use it to execute comment operations and set up
+        //    so that the consumers can use it to execute comment operation and set up
         //    the real time listener for the addon dataset.
         const client = handleCreateClient(datasetName)
         setAddonDatasetClient(client)
@@ -108,7 +108,7 @@ export function CommentsSetupProvider(props: CommentsSetupProviderProps) {
   useEffect(() => {
     // On mount, we check if the addon dataset already exists. If it does, we create
     // a client for it and set it in the context value so that the consumers can use
-    // it to execute comment operations and set up the real time listener for the addon
+    // it to execute comment operation and set up the real time listener for the addon
     // dataset.
     getAddonDatasetName().then((addonDatasetName) => {
       if (!addonDatasetName) return
