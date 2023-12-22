@@ -136,6 +136,7 @@ export const BlockStyleSelect = memo(function BlockStyleSelect(
         mode="bleed"
         onClick={preventDefault}
         text={menuButtonText}
+        justify="flex-start"
         width="fill"
       />
     ),
