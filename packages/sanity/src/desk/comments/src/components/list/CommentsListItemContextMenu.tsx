@@ -15,7 +15,7 @@ import {COMMENT_REACTION_OPTIONS} from '../../constants'
 import {ReactionIcon} from '../icons'
 import {ContextMenuButton} from 'sanity'
 
-const renderButton = ({open}: {open: boolean}) => (
+const renderMenuButton = ({open}: {open: boolean}) => (
   <Button
     aria-label="Add reaction"
     icon={ReactionIcon}
@@ -80,7 +80,7 @@ export function CommentsListItemContextMenu(props: CommentsListItemContextMenuPr
               onMenuOpen={onMenuOpen}
               onSelect={onReactionSelect}
               options={COMMENT_REACTION_OPTIONS}
-              renderButton={renderButton}
+              renderMenuButton={renderMenuButton}
               selectedOptionNames={currentUserReactionsNames}
             />
           )}

@@ -11,12 +11,12 @@ export interface CommentReactionsMenuButtonProps {
   onMenuOpen?: () => void
   onSelect: (option: CommentReactionOption) => void
   options: CommentReactionOption[]
-  renderButton: (props: {open: boolean}) => React.ReactElement
+  renderMenuButton: (props: {open: boolean}) => React.ReactElement
   selectedOptionNames: CommentReactionOptionNames[]
 }
 
 export function CommentReactionsMenuButton(props: CommentReactionsMenuButtonProps) {
-  const {options, onSelect, selectedOptionNames, onMenuClose, onMenuOpen, renderButton} = props
+  const {options, onSelect, selectedOptionNames, onMenuClose, onMenuOpen, renderMenuButton} = props
   const [buttonElement, setButtonElement] = useState<HTMLButtonElement | null>(null)
   const [popoverElement, setPopoverElement] = useState<HTMLDivElement | null>(null)
 
@@ -68,7 +68,7 @@ export function CommentReactionsMenuButton(props: CommentReactionsMenuButtonProp
   )
 
   const button = useMemo(() => {
-    const btn = renderButton({open})
+    const btn = renderMenuButton({open})
 
     return cloneElement(btn, {
       'aria-expanded': open,
@@ -77,32 +77,34 @@ export function CommentReactionsMenuButton(props: CommentReactionsMenuButtonProp
       onClick: handleClick,
       ref: setButtonElement,
     })
-  }, [handleClick, open, renderButton])
+  }, [handleClick, open, renderMenuButton])
+
+  const popoverContent = (
+    <Card
+      aria-labelledby="reactions-menu-button"
+      onKeyDown={handleKeyDown}
+      padding={1}
+      radius={3}
+      tone="default"
+    >
+      <CommentReactionsMenu
+        onSelect={handleSelect}
+        options={options}
+        selectedOptionNames={selectedOptionNames}
+      />
+    </Card>
+  )
 
   return (
     <Popover
-      ref={setPopoverElement}
-      placement="bottom"
-      fallbackPlacements={POPOVER_FALLBACK_PLACEMENTS}
-      tone="default"
-      content={
-        <Card
-          aria-labelledby="reactions-menu-button"
-          onKeyDown={handleKeyDown}
-          padding={1}
-          radius={3}
-          tone="default"
-        >
-          <CommentReactionsMenu
-            onSelect={handleSelect}
-            options={options}
-            selectedOptionNames={selectedOptionNames}
-          />
-        </Card>
-      }
       constrainSize
-      portal
+      content={popoverContent}
+      fallbackPlacements={POPOVER_FALLBACK_PLACEMENTS}
       open={open}
+      placement="bottom"
+      portal
+      ref={setPopoverElement}
+      tone="default"
     >
       {button}
     </Popover>

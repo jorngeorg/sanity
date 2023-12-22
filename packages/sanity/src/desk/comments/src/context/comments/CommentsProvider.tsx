@@ -55,11 +55,9 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
   const {client, runSetup, isRunningSetup} = useCommentsSetup()
   const publishedId = getPublishedId(documentId)
   const editState = useEditState(publishedId, documentType, 'low')
-
-  const documentValue = useMemo(() => {
-    return editState.draft || editState.published
-  }, [editState.draft, editState.published])
-
+  const schemaType = useSchema().get(documentType)
+  const currentUser = useCurrentUser()
+  const {name: workspaceName, dataset, projectId} = useWorkspace()
   const {
     dispatch,
     data = EMPTY_ARRAY,
@@ -70,13 +68,13 @@ export const CommentsProvider = memo(function CommentsProvider(props: CommentsPr
     client,
   })
 
+  const documentValue = useMemo(() => {
+    return editState.draft || editState.published
+  }, [editState.draft, editState.published])
+
   const mentionOptions = useMentionOptions(
     useMemo((): MentionHookOptions => ({documentValue}), [documentValue]),
   )
-
-  const schemaType = useSchema().get(documentType)
-  const currentUser = useCurrentUser()
-  const {name: workspaceName, dataset, projectId} = useWorkspace()
 
   const threadItemsByStatus: ThreadItemsByStatus = useMemo(() => {
     if (!schemaType || !currentUser) return EMPTY_COMMENTS_DATA

@@ -103,7 +103,7 @@ export function CommentReactionsUsersTooltip(props: CommentReactionsUsersTooltip
 
           <div>
             {content}
-            <wbr /> <InlineText muted>reacted with </InlineText>
+            <InlineText muted>reacted with </InlineText>
             <wbr /> <InlineText muted>{reactionName}</InlineText>
           </div>
         </ContentStack>

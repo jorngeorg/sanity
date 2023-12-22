@@ -9,37 +9,17 @@ import {TOOLTIP_DELAY_PROPS, Tooltip} from '../../../../../ui-components'
 import {CommentReactionsMenuButton} from './CommentReactionsMenuButton'
 import {CommentReactionsUsersTooltip} from './CommentReactionsUsersTooltip'
 
-const ReactionButtonCard = styled(Card)`
-  max-width: max-content;
-  border: 1px solid var(--card-border-color) !important;
-`
-
-const renderButton = ({open}: {open: boolean}) => (
-  <ReactionButtonCard
-    __unstable_focusRing
-    forwardedAs="button"
-    pressed={open}
-    radius={6}
-    tone="transparent"
-    type="button"
-  >
-    <Tooltip animate content="Add reaction">
-      <Flex align="center" justify="center" padding={2} paddingX={3}>
-        <Text muted size={1}>
-          <ReactionIcon />
-        </Text>
-      </Flex>
-    </Tooltip>
-  </ReactionButtonCard>
-)
-
-interface CommentReactionsBarProps {
-  reactions: CommentReactionItem[]
-  onSelect: (reaction: CommentReactionOption) => void
-  currentUser: CurrentUser
-}
-
-function groupReactions(reactions: CommentReactionItem[]) {
+/**
+ * A function that groups reactions by name. For example:
+ *
+ * ```js
+ * [
+ *  [':name:', [{name: ':name:', userId: 'user1'}, {name: ':name:', userId: 'user2'}],
+ *  [':name2:', [{name: ':name2:', userId: 'user1'}]
+ * ]
+ *```
+ */
+function groupReactionsByName(reactions: CommentReactionItem[]) {
   const grouped = reactions.reduce(
     (acc, reaction) => {
       const {name} = reaction
@@ -68,8 +48,38 @@ function groupReactions(reactions: CommentReactionItem[]) {
   return sorted as [CommentReactionOptionNames, CommentReactionItem[]][]
 }
 
+const ReactionButtonCard = styled(Card)`
+  max-width: max-content;
+  border: 1px solid var(--card-border-color) !important;
+`
+
+const renderMenuButton = ({open}: {open: boolean}) => (
+  <ReactionButtonCard
+    __unstable_focusRing
+    forwardedAs="button"
+    pressed={open}
+    radius={6}
+    tone="transparent"
+    type="button"
+  >
+    <Tooltip animate content="Add reaction">
+      <Flex align="center" justify="center" padding={2} paddingX={3}>
+        <Text muted size={1}>
+          <ReactionIcon />
+        </Text>
+      </Flex>
+    </Tooltip>
+  </ReactionButtonCard>
+)
+
+interface CommentReactionsBarProps {
+  currentUser: CurrentUser
+  onSelect: (reaction: CommentReactionOption) => void
+  reactions: CommentReactionItem[]
+}
+
 export function CommentReactionsBar(props: CommentReactionsBarProps) {
-  const {currentUser, reactions, onSelect} = props
+  const {currentUser, onSelect, reactions} = props
 
   const handleSelect = useCallback(
     (name: CommentReactionOptionNames) => {
@@ -82,31 +92,18 @@ export function CommentReactionsBar(props: CommentReactionsBarProps) {
     [onSelect],
   )
 
-  const selectedOptionNames = useMemo(() => {
+  const currentUserReactions = useMemo(() => {
     return reactions.filter((r) => r.userId === currentUser?.id).map((r) => r.name)
   }, [currentUser?.id, reactions])
 
-  const groupedReactions = useMemo(() => groupReactions(reactions), [reactions])
-
-  const usersPerReaction = useMemo(() => {
-    return groupedReactions.reduce(
-      (acc, [name, reactionsList]) => {
-        const users = reactionsList.map((r) => r.userId)
-
-        acc[name] = users
-
-        return acc
-      },
-      {} as Record<CommentReactionOptionNames, string[]>,
-    )
-  }, [groupedReactions])
+  const groupedReactions = useMemo(() => groupReactionsByName(reactions), [reactions])
 
   return (
     <Flex align="center" gap={1} wrap="wrap">
       <TooltipDelayGroupProvider delay={TOOLTIP_DELAY_PROPS}>
         {groupedReactions.map(([name, reactionsList]) => {
-          const hasReacted = selectedOptionNames.includes(name)
-          const userIds = usersPerReaction[name]
+          const hasReacted = currentUserReactions.includes(name)
+          const userIds = reactionsList.map((r) => r.userId)
 
           return (
             <CommentReactionsUsersTooltip
@@ -116,15 +113,15 @@ export function CommentReactionsBar(props: CommentReactionsBarProps) {
               userIds={userIds}
             >
               <ReactionButtonCard
-                radius={6}
-                type="button"
+                __unstable_focusRing
+                border
                 forwardedAs="button"
-                tone={hasReacted ? 'primary' : 'transparent'}
                 // eslint-disable-next-line react/jsx-no-bind
                 onClick={() => handleSelect(name)}
                 padding={2}
-                border
-                __unstable_focusRing
+                radius={6}
+                tone={hasReacted ? 'primary' : 'transparent'}
+                type="button"
               >
                 <Flex align="center" gap={2}>
                   <Text size={1}>{COMMENT_REACTION_EMOJIS[name]}</Text>
@@ -142,8 +139,8 @@ export function CommentReactionsBar(props: CommentReactionsBarProps) {
           // eslint-disable-next-line react/jsx-no-bind
           onSelect={(o) => handleSelect(o.name)}
           options={COMMENT_REACTION_OPTIONS}
-          renderButton={renderButton}
-          selectedOptionNames={selectedOptionNames}
+          renderMenuButton={renderMenuButton}
+          selectedOptionNames={currentUserReactions}
         />
       </TooltipDelayGroupProvider>
     </Flex>
