@@ -18,6 +18,7 @@ import {ReferenceChangedBanner} from './ReferenceChangedBanner'
 import {PermissionCheckBanner} from './PermissionCheckBanner'
 import {FormView} from './documentViews'
 import {DocumentPanelHeader} from './header'
+import {DeprecatedDocumentTypeBanner} from './DeprecatedDocumentTypeBanner'
 import {ScrollContainer, useTimelineSelector, VirtualizerScrollInstanceProvider} from 'sanity'
 
 interface DocumentPanelProps {
@@ -165,6 +166,7 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
                           <DeletedDocumentBanner revisionId={lastNonDeletedRevId} />
                         )}
                         <ReferenceChangedBanner />
+                        <DeprecatedDocumentTypeBanner />
                       </>
                     )}
 
