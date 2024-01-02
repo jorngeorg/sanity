@@ -7,12 +7,12 @@ import {useCurrentUser} from 'sanity'
 
 const INITIAL_REACTIONS: CommentReactionItem[] = [
   {
-    name: ':eyes:',
+    name: 'eyes',
     userId: 'p8U8TipFc',
     _key: '1',
   },
   {
-    name: ':heavy_plus_sign:',
+    name: 'heavy_plus_sign',
     userId: 'abc',
     _key: '2',
   },
