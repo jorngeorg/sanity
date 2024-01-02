@@ -99,12 +99,12 @@ interface CommentCreateFailedState {
  * @hidden
  */
 export type CommentReactionOptionNames =
-  | ':eyes:'
-  | ':heart_eyes:'
-  | ':heavy_plus_sign:'
-  | ':rocket:'
-  | ':thumbsdown:'
-  | ':thumbsup:'
+  | 'eyes'
+  | 'heart_eyes'
+  | 'heavy_plus_sign'
+  | 'rocket'
+  | 'thumbs_down'
+  | 'thumbs_up'
 
 /**
  * @beta
